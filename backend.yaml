@@ -66,7 +66,7 @@
       
   - name: load products into mysql
     ansible.builtin.shell: mysql -h 172.31.48.231 -uroot -pExpenseApp@1 < /app/schema/backend.sql
-    when: backend_output.stdout | int < 0
+    #when: backend_output.stdout | int < 0
 
   - name: restart backend
     ansible.builtin.service:
