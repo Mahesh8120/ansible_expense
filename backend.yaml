@@ -1,0 +1,75 @@
+- name: backend setup
+  hosts: backend
+  become: yes
+  tasks:
+  - name: disable nodejs
+    ansible.builtin.command: dnf module disable nodejs -y
+
+  - name: enable nodejs
+    ansible.builtin.command: dnf module enable nodejs:20 -y
+
+  - name: install nodejs
+    ansible.builtin.package:
+      name: nodejs
+      state: present
+
+  - name: create roboshop system user
+    ansible.builtin.user:
+      name: expense
+      home: /app
+
+  - name: create app directory
+    ansible.builtin.file:
+      state: directory
+      path: /app
+  - name: create app directory
+    ansible.builtin.file:
+      state: directory
+      path: /app
+
+  - name: download backend application
+    ansible.builtin.get_url:
+      url: https://expense-joindevops.s3.us-east-1.amazonaws.com/expense-backend-v2.zip
+      dest: /tmp/backend.zip
+
+  - name: extract backend application
+    ansible.builtin.unarchive:
+      src: /tmp/backend.zip
+      dest: /app
+      remote_src: yes
+
+  - name: install dependencies
+    community.general.npm:
+      path: /app
+
+  - name: copy backend service
+    ansible.builtin.copy:
+      src: backend.service
+      dest: /etc/systemd/system/backend.service
+  
+  - name: demon-reload
+    ansible.builtin.systemd_service:
+      state: started
+      daemon_reload: true
+
+  - name: start and enable backend
+    ansible.builtin.service:
+      name: backend
+      state: started
+      enabled: yes
+
+  - name: install mysql
+    ansible.builtin.package:
+      name: mysql 
+      state: present
+      
+  - name: load products into mysql
+    ansible.builtin.shell: mysql -h <MYSQL-SERVER-IPADDRESS> -uroot -pExpenseApp@1 < /app/schema/backend.sql
+    when: backend_output.stdout | int < 0
+
+  - name: restart backend
+    ansible.builtin.service:
+      name: backend
+      state: restarted
+
+
